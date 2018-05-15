@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -36,13 +37,27 @@ public class Main {
         
         Unzipper unzipper = new Unzipper(argParser.getInput());
         Map<String, BufferedImage> files_images = unzipper.getImagesZip();
-        
-        
+        encode(files_images);
+        /*
         files_images = applyFilters(files_images);
         if (argParser.getOutput() != null && !argParser.getOutput().isEmpty()){
             saveImages(files_images, argParser.getOutput());
         }        
-        showImages(new ArrayList<>(files_images.values()),  mainWindow);
+        showImages(new ArrayList<>(files_images.values()),  mainWindow);*/
+    }
+    
+    private static void encode(Map<String, BufferedImage> files_images){
+        Map<String, BufferedImage> encoded_images = new TreeMap<>();
+        String filename;
+        BufferedImage base = (BufferedImage) files_images.values().toArray()[0];
+        BufferedImage destino = (BufferedImage) files_images.values().toArray()[1];
+        
+        BufferedImage result = Codec.Encode(base, destino);
+        
+        int[][]data;
+        //BufferedImage decoded = Codec.Decode(base, destino, data);
+        System.out.println("Im done!");
+        saveImage(result, "result.jpeg");
     }
     
     private static void showImages(ArrayList<BufferedImage> images, MainWindow window){
@@ -115,15 +130,17 @@ public class Main {
         for(Map.Entry<String, BufferedImage> entry : files_images.entrySet()) {
             filename = entry.getKey();
             image = entry.getValue();
-
-            file = new File(destinationPath + File.separator + filename.substring(0,filename.indexOf('.')));
-            //   new File(file.getParent()).mkdirs();          
-            try {
-                ImageIO.write(image, "jpeg", file);
-            } catch (IOException ex) {
-                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            saveImage(image, destinationPath + File.separator + filename.substring(0,filename.indexOf('.')));
         }
         
+    }
+    private static void saveImage(BufferedImage image, String destination){
+        
+        File file = new File(destination);
+        try {
+            ImageIO.write(image, "jpeg", file);
+        } catch (IOException ex) {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 }
