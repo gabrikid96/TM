@@ -71,10 +71,28 @@ public class ArgParser {
         return quality;
     }
     
-    @Parameter(names = "--GOP", required = true, description = "GOP")
+    @Parameter(names = "--GOP", required = false, description = "GOP")
     private int gop;
     public int getGop(){
          return gop;
+    }
+    
+    @Parameter(names ={"--batch","-b"}, required = false, description = "")
+    private boolean batch;
+    public boolean getBatch(){
+        return batch;
+    }
+    
+        @Parameter(names ={"--encode","-e"}, required = false, description = "Encode")
+    private boolean encode;
+    public boolean getEncode(){
+        return encode;
+    }
+     
+    @Parameter(names ={"--decode","-d"}, required = false, description = "Decode")
+    private boolean decode;
+    public boolean getDecode(){
+        return decode;
     }
 }
 

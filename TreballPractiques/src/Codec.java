@@ -3,6 +3,9 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -16,7 +19,7 @@ import java.util.ArrayList;
  */
 public class Codec {
     
-    public static BufferedImage Encode(BufferedImage base, BufferedImage destino) {
+    public static BufferedImage Encode(BufferedImage base, BufferedImage destino, Map<Integer,ArrayList<Integer>> data) {
         long T_ini = System.nanoTime();
         int n_teselas = ArgParser.getInstance().getNTiles();
         ArrayList<ImageTile> list_tiles = getTiles(base, n_teselas);
@@ -28,6 +31,7 @@ public class Codec {
         int quality = ArgParser.getInstance().getQuality();
         BufferedImage result = new BufferedImage(destino.getColorModel(), (WritableRaster)destino.getData(),
                                 destino.getColorModel().isAlphaPremultiplied(), null);
+        int numTile = 0;
         for (ImageTile imageTile : list_tiles) {
             BufferedImage tesela = imageTile.getImage();
             WritableRaster  result_wras = (WritableRaster)result.getData();
@@ -54,9 +58,7 @@ public class Codec {
                     }catch(Exception ex){                        
                         System.out.println("I: " + i + " J: "+ j);
                         throw ex;
-                    }
-                    
-                    
+                    }           
                 }
             }
             rt /= n;
@@ -90,8 +92,12 @@ public class Codec {
                         btd /= nd;
                         double valor = funcioComparadora(new Color((int)rt,(int)gt,(int)bt), new Color((int)rtd,(int)gtd,(int)btd));
                         if (valor < quality){
-                            System.out.println("Hello");
                             destino = smooth_tile_diff(destino,tesela,x,y);
+                            ArrayList<Integer> x0y0 = new ArrayList<>();
+                            x0y0.add(x);
+                            x0y0.add(y);
+                            data.put(numTile, x0y0);
+
                             result = new BufferedImage(destino.getColorModel(), (WritableRaster)destino.getData(),
                                 destino.getColorModel().isAlphaPremultiplied(), null);
                             break;
@@ -99,8 +105,9 @@ public class Codec {
                     }
                 }
             }
+            numTile++;
         }
-        long T_fin = System.nanoTime();
+        System.out.printf("Time Encode %.2fms\n\n", (System.nanoTime() - T_ini)* 1e-6);
         return result;
     }
     
@@ -168,19 +175,27 @@ public class Codec {
         return img;
     }
     
-    public static BufferedImage Decode(ImageTile base, ImageTile encoded, int[][] data) {
-        ArrayList<ImageTile> list_teselas = Codec.getTiles(base.getImage(),ArgParser.getInstance().getNTiles());
-        BufferedImage img = encoded.getImage();
-        int k = data[0].length - 1;
-        while (k >= 0) {
-            int x0_dest = data[3][k];
-            int y0_dest = data[4][k];
-            ImageTile tesela = list_teselas.get(data[0][k]);
-            //System.out.println("decoding id " + tesela.getName() + " (" + count_tesela + " of " + n_teselas + ")");
+    public static BufferedImage Decode(BufferedImage base, BufferedImage img, Map<Integer,ArrayList<Integer>> data) {
+        ArrayList<ImageTile> list_teselas = Codec.getTiles(base,ArgParser.getInstance().getNTiles());
+        int k = data.size();
+        k = list_teselas.size() - 1;
+        for (Entry<Integer, ArrayList<Integer>> entry : data.entrySet()){
+            int numTile = entry.getKey();
+            int x0_dest = entry.getValue().get(0);
+            int y0_dest = entry.getValue().get(1);
+            ImageTile tesela = list_teselas.get(numTile);
+            BufferedImage tes = tesela.getImage();
+            img = smooth_tile_sum(img, tes, x0_dest, y0_dest);
+        }
+            
+        /*while (k >= 0) {
+            int x0_dest = data.get(k).get(0);
+            int y0_dest = data.get(k).get(1);
+            ImageTile tesela = list_teselas.get((int)data.keySet().toArray()[k]);
             BufferedImage tes = tesela.getImage();
             img = smooth_tile_sum(img, tes, x0_dest, y0_dest);
             k--;
-        }
+        }*/
         
         return img;
 
@@ -191,8 +206,8 @@ public class Codec {
         int widthTile = tes.getWidth();
         Color color_tes,color_img; 
         int[] rgb_sum;
-        for  (int i = 0; i < heightTile; i++){
-            for (int j = 0; i < widthTile; j++){
+        for  (int i = 0; i < widthTile; i++){
+            for (int j = 0; j < heightTile; j++){
                 color_tes = new Color(tes.getRGB(i, j));
                 color_img = new Color(img.getRGB(i + tes_x0, j + tes_y0));
                 int[] rgb_tes = {color_tes.getRed(),color_tes.getGreen(), color_tes.getBlue()};

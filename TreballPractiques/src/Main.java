@@ -1,15 +1,21 @@
 
 import com.beust.jcommander.JCommander;
 import java.awt.image.BufferedImage;
+import java.awt.image.WritableRaster;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import javax.imageio.ImageIO;
 
 /*
@@ -35,20 +41,33 @@ public class Main {
         
         MainWindow mainWindow = new MainWindow();
         
-        Unzipper unzipper = new Unzipper(argParser.getInput());
-        Map<String, BufferedImage> files_images = unzipper.getImagesZip();
+        Map<String, BufferedImage> files_images = FileHelper.getImagesFromZip(argParser.getInput());
                 
-        Map<String, BufferedImage> encoded_images = encode(files_images);
+        if (argParser.getEncode()){
+            Map<String, Map<Integer,ArrayList<Integer>>> data = new HashMap<>();
+            Map<String, BufferedImage> encoded_images = encode(files_images, data);
+            Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
+            
+            //Proba per mostrar les decode
+            showImages(new ArrayList<>(decoded_images.values()),  mainWindow);
+            FileHelper.saveImagesToZip(decoded_images,"decoded");
+            //TODO : Fer que guardi aquestes imatges en un zip
+            /*ZipHelper.*/
+            //saveImages(encoded_images, "encoded");
+            //FileHelper.saveImagesToZip(encoded_images,"encoded");
+            
+        }
         
-        files_images = applyFilters(files_images);
+        
+        /*files_images = applyFilters(files_images);
         if (argParser.getOutput() != null && !argParser.getOutput().isEmpty()){
-            //saveImages(files_images, argParser.getOutput());
-            saveImages(encoded_images, argParser.getOutput());
+            FileHelper.saveImages(files_images, argParser.getOutput());
+            
         }        
-        showImages(new ArrayList<>(files_images.values()),  mainWindow);
+        showImages(new ArrayList<>(files_images.values()),  mainWindow);*/
     }
     
-    private static Map<String, BufferedImage> encode(Map<String, BufferedImage> files_images){
+    private static Map<String, BufferedImage> encode(Map<String, BufferedImage> files_images, Map<String, Map<Integer,ArrayList<Integer>>> data){
         BufferedImage image_I, image_P;
         String filename_I, filename_P;
         Map<String, BufferedImage> encoded_images = new TreeMap<>();
@@ -59,32 +78,48 @@ public class Main {
         String[] filenames  = new String[files_images.size()];
         filenames = (String[]) files_images.keySet().toArray(filenames);
         
-        for (int P = 0, I = 0; P < files_images.size()/argParser.getGop(); P++, I+=argParser.getGop()){
+        Map<Integer,ArrayList<Integer>> data_P;
+        for (int P = 0, I = 0; P < (int)Math.ceil((double)files_images.size()/argParser.getGop()); P++, I+=argParser.getGop()){
             image_I = images[I];
             filename_I = filenames[I];
             
             image_P = I + argParser.getGop() > images.length ? images[P] : images[I + argParser.getGop() -1];
             filename_P = I + argParser.getGop() > filenames.length ? filenames[P] : filenames[I + argParser.getGop() -1];
-            System.out.println("I: "+ filename_I + " P: " + filename_P);
-            encoded_images.put("I_" + filename_I, image_I);
-            //  TODO : hay que hacer algo con el return, no hay que guardarse la imagen codificada.
-            Codec.Encode(image_I, image_P);
+            filename_I = filename_I.substring(0,filename_I.indexOf('.'));
+            System.out.println("I: " + filename_I + "\nP: " + filename_P);
+            encoded_images.put(filename_I + "_I.jpeg", image_I);
+            encoded_images.put(filename_I + "_P.jpeg", image_P);
+            data_P = new HashMap<>();
+            Codec.Encode(new BufferedImage(image_I.getColorModel(), (WritableRaster)image_I.getData(),
+                                image_I.getColorModel().isAlphaPremultiplied(), null), image_P, data_P);
+            data.put(filename_I,data_P);
         }        
+        System.out.println("Encoded images: " + encoded_images.size());
         return encoded_images;
-        
-        /*Map<String, BufferedImage> encoded_images = new TreeMap<>();
-        String filename;
-        BufferedImage base = (BufferedImage) files_images.values().toArray()[0];
-        BufferedImage destino = (BufferedImage) files_images.values().toArray()[1];
-        
-        BufferedImage result = Codec.Encode(base, destino);
-        
-        int[][]data;
-        //BufferedImage decoded = Codec.Decode(base, destino, data);
-        System.out.println("Im done!");
-        saveImage(result, "result.jpeg");*/
     }
     
+    private static Map<String, BufferedImage> decode(Map<String, BufferedImage> files_images, Map<String, Map<Integer,ArrayList<Integer>>> data){
+        BufferedImage image_I, image_P;
+        String filename_I, filename_P;
+        Map<String, BufferedImage> decoded_images = new TreeMap<>();
+        BufferedImage [] images  = new BufferedImage[files_images.size()];
+        images = (BufferedImage[]) files_images.values().toArray(images);
+        
+        String[] filenames  = new String[files_images.size()];
+        filenames = (String[]) files_images.keySet().toArray(filenames);
+        String key = "";
+        for (int I = 0, P = 1; I < files_images.size(); I+=2, P+=2){
+            image_I = images[I];
+            filename_I = filenames[I];
+            
+            image_P = images[P];
+            filename_P = filenames[P];
+            key = filename_I.substring(0, filename_I.indexOf('_'));
+            decoded_images.put(filename_I, image_I);
+            decoded_images.put(key + ".jpeg", Codec.Decode(image_I, image_P, data.get(key)));
+        }
+        return decoded_images;
+    }
     private static void showImages(ArrayList<BufferedImage> images, MainWindow window){
         window.setVisible(true);        
         Timer timer;
@@ -142,30 +177,4 @@ public class Main {
                 return image;
         }
     }  
-    
-    private static void saveImages(Map<String, BufferedImage> files_images, String destinationPath){
-        File file;
-        String filename;
-        BufferedImage image;
-        
-        File folder = new File(destinationPath);
-        if(!folder.exists()){
-                folder.mkdir();
-        }
-        for(Map.Entry<String, BufferedImage> entry : files_images.entrySet()) {
-            filename = entry.getKey();
-            image = entry.getValue();
-            saveImage(image, destinationPath + File.separator + filename.substring(0,filename.indexOf('.'))  + ".jpeg");
-        }
-        
-    }
-    private static void saveImage(BufferedImage image, String destination){
-        
-        File file = new File(destination);
-        try {
-            ImageIO.write(image, "jpeg", file);
-        } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
 }
