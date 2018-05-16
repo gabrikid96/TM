@@ -70,5 +70,11 @@ public class ArgParser {
     public int getQuality() {
         return quality;
     }
+    
+    @Parameter(names = "--GOP", required = true, description = "GOP")
+    private int gop;
+    public int getGop(){
+         return gop;
+    }
 }
 

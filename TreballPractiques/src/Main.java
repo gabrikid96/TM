@@ -37,17 +37,42 @@ public class Main {
         
         Unzipper unzipper = new Unzipper(argParser.getInput());
         Map<String, BufferedImage> files_images = unzipper.getImagesZip();
-        encode(files_images);
-        /*
+                
+        Map<String, BufferedImage> encoded_images = encode(files_images);
+        
         files_images = applyFilters(files_images);
         if (argParser.getOutput() != null && !argParser.getOutput().isEmpty()){
-            saveImages(files_images, argParser.getOutput());
+            //saveImages(files_images, argParser.getOutput());
+            saveImages(encoded_images, argParser.getOutput());
         }        
-        showImages(new ArrayList<>(files_images.values()),  mainWindow);*/
+        showImages(new ArrayList<>(files_images.values()),  mainWindow);
     }
     
-    private static void encode(Map<String, BufferedImage> files_images){
+    private static Map<String, BufferedImage> encode(Map<String, BufferedImage> files_images){
+        BufferedImage image_I, image_P;
+        String filename_I, filename_P;
         Map<String, BufferedImage> encoded_images = new TreeMap<>();
+        
+        BufferedImage [] images  = new BufferedImage[files_images.size()];
+        images = (BufferedImage[]) files_images.values().toArray(images);
+        
+        String[] filenames  = new String[files_images.size()];
+        filenames = (String[]) files_images.keySet().toArray(filenames);
+        
+        for (int P = 0, I = 0; P < files_images.size()/argParser.getGop(); P++, I+=argParser.getGop()){
+            image_I = images[I];
+            filename_I = filenames[I];
+            
+            image_P = I + argParser.getGop() > images.length ? images[P] : images[I + argParser.getGop() -1];
+            filename_P = I + argParser.getGop() > filenames.length ? filenames[P] : filenames[I + argParser.getGop() -1];
+            System.out.println("I: "+ filename_I + " P: " + filename_P);
+            encoded_images.put("I_" + filename_I, image_I);
+            //  TODO : hay que hacer algo con el return, no hay que guardarse la imagen codificada.
+            Codec.Encode(image_I, image_P);
+        }        
+        return encoded_images;
+        
+        /*Map<String, BufferedImage> encoded_images = new TreeMap<>();
         String filename;
         BufferedImage base = (BufferedImage) files_images.values().toArray()[0];
         BufferedImage destino = (BufferedImage) files_images.values().toArray()[1];
@@ -57,7 +82,7 @@ public class Main {
         int[][]data;
         //BufferedImage decoded = Codec.Decode(base, destino, data);
         System.out.println("Im done!");
-        saveImage(result, "result.jpeg");
+        saveImage(result, "result.jpeg");*/
     }
     
     private static void showImages(ArrayList<BufferedImage> images, MainWindow window){
@@ -130,7 +155,7 @@ public class Main {
         for(Map.Entry<String, BufferedImage> entry : files_images.entrySet()) {
             filename = entry.getKey();
             image = entry.getValue();
-            saveImage(image, destinationPath + File.separator + filename.substring(0,filename.indexOf('.')));
+            saveImage(image, destinationPath + File.separator + filename.substring(0,filename.indexOf('.'))  + ".jpeg");
         }
         
     }
