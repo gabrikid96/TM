@@ -45,16 +45,20 @@ public class Main {
                 
         if (argParser.getEncode()){
             Map<String, Map<Integer,ArrayList<Integer>>> data = new HashMap<>();
-            Map<String, BufferedImage> encoded_images = encode(files_images, data);
-            Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
             
-            //Proba per mostrar les decode
+            Map<String, BufferedImage> encoded_images = encode(files_images, data);
+            
+            FileHelper.saveImagesToZip(encoded_images,"encoded");
+            
+            Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
             showImages(new ArrayList<>(decoded_images.values()),  mainWindow);
+            //Proba per mostrar les decode
+            
             FileHelper.saveImagesToZip(decoded_images,"decoded");
             //TODO : Fer que guardi aquestes imatges en un zip
             /*ZipHelper.*/
             //saveImages(encoded_images, "encoded");
-            //FileHelper.saveImagesToZip(encoded_images,"encoded");
+            
             
         }
         
@@ -87,11 +91,11 @@ public class Main {
             filename_P = I + argParser.getGop() > filenames.length ? filenames[P] : filenames[I + argParser.getGop() -1];
             filename_I = filename_I.substring(0,filename_I.indexOf('.'));
             System.out.println("I: " + filename_I + "\nP: " + filename_P);
-            encoded_images.put(filename_I + "_I.jpeg", image_I);
-            encoded_images.put(filename_I + "_P.jpeg", image_P);
             data_P = new HashMap<>();
-            Codec.Encode(new BufferedImage(image_I.getColorModel(), (WritableRaster)image_I.getData(),
-                                image_I.getColorModel().isAlphaPremultiplied(), null), image_P, data_P);
+            encoded_images.put(filename_I + "_I.jpeg", image_I);
+            encoded_images.put(filename_I + "_P.jpeg", Codec.Encode(image_I, image_P, data_P));
+            
+            
             data.put(filename_I,data_P);
         }        
         System.out.println("Encoded images: " + encoded_images.size());
@@ -108,6 +112,7 @@ public class Main {
         String[] filenames  = new String[files_images.size()];
         filenames = (String[]) files_images.keySet().toArray(filenames);
         String key = "";
+        
         for (int I = 0, P = 1; I < files_images.size(); I+=2, P+=2){
             image_I = images[I];
             filename_I = filenames[I];
@@ -142,7 +147,7 @@ public class Main {
         currentImage = images.get(currentFrame);
         window.UpdateIcon(currentImage);
         currentFrame++;
-        currentFrame = currentFrame > images.size() - 1 ? 0 : currentFrame++;
+        currentFrame = currentFrame > images.size() - 1 ? 0 : currentFrame;
     }
     
     private static Map<String, BufferedImage> applyFilters(Map<String, BufferedImage> files_images){
