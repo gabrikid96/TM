@@ -150,9 +150,27 @@ public class Codec {
     private static BufferedImage smooth_tile_diff(BufferedImage img, BufferedImage tes, int tes_x0, int tes_y0){
         int heightTile = tes.getHeight();
         int widthTile = tes.getWidth();
-        Color color_tes,color_img; 
-        int[] rgb_diff;
-        for  (int i = 0; i < widthTile; i++){
+        float rtd = 0.f;
+        float gtd = 0.f;
+        float btd = 0.f;
+        int nd = heightTile * widthTile;
+        for (int h = 0; h < heightTile; h++) {
+            for (int p = 0; p < widthTile; p++) {
+                Color cd = new Color(tes.getRGB(p, h));
+                rtd += cd.getRed();
+                gtd += cd.getGreen();
+                btd += cd.getBlue();
+            }
+        }
+        rtd /= nd;
+        gtd /= nd;
+        btd /= nd;
+        for (int h = 0; h < heightTile; h++) {
+            for (int p = 0; p < widthTile; p++) {
+                img.setRGB(h + tes_x0, p+ tes_y0, new Color((int)rtd, (int)gtd, (int)btd).getRGB());
+            }
+        }
+        /*for  (int i = 0; i < widthTile; i++){
             for (int j = 0; j < heightTile; j++){
                 color_tes = new Color(tes.getRGB(i, j));
                 color_img = new Color(img.getRGB(i + tes_x0, j + tes_y0));
@@ -171,14 +189,12 @@ public class Codec {
                 }
                 img.setRGB(i + tes_x0, j+ tes_y0, new Color(rgb_diff[0], rgb_diff[1], rgb_diff[2]).getRGB());
             }
-        }
+        }*/
         return img;
     }
     
     public static BufferedImage Decode(BufferedImage base, BufferedImage img, Map<Integer,ArrayList<Integer>> data) {
         ArrayList<ImageTile> list_teselas = Codec.getTiles(base,ArgParser.getInstance().getNTiles());
-        int k = data.size();
-        k = list_teselas.size() - 1;
         for (Entry<Integer, ArrayList<Integer>> entry : data.entrySet()){
             int numTile = entry.getKey();
             int x0_dest = entry.getValue().get(0);

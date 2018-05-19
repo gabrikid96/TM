@@ -44,13 +44,14 @@ public class Main {
         Map<String, BufferedImage> files_images = FileHelper.getImagesFromZip(argParser.getInput());
                 
         if (argParser.getEncode()){
-            Map<String, Map<Integer,ArrayList<Integer>>> data = new HashMap<>();
+            Map<String, Map<Integer,ArrayList<Integer>>> data = new TreeMap<>();
             Map<String, BufferedImage> encoded_images = encode(files_images, data);
+            FileHelper.saveImagesToZip(encoded_images,"encoded");
             Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
             
             //Proba per mostrar les decode
             showImages(new ArrayList<>(decoded_images.values()),  mainWindow);
-            FileHelper.saveImagesToZip(decoded_images,"decoded");
+            
             //TODO : Fer que guardi aquestes imatges en un zip
             /*ZipHelper.*/
             //saveImages(encoded_images, "encoded");
@@ -79,21 +80,26 @@ public class Main {
         filenames = (String[]) files_images.keySet().toArray(filenames);
         
         Map<Integer,ArrayList<Integer>> data_P;
-        for (int P = 0, I = 0; P < (int)Math.ceil((double)files_images.size()/argParser.getGop()); P++, I+=argParser.getGop()){
-            image_I = images[I];
-            filename_I = filenames[I];
-            
-            image_P = I + argParser.getGop() > images.length ? images[P] : images[I + argParser.getGop() -1];
-            filename_P = I + argParser.getGop() > filenames.length ? filenames[P] : filenames[I + argParser.getGop() -1];
-            filename_I = filename_I.substring(0,filename_I.indexOf('.'));
-            System.out.println("I: " + filename_I + "\nP: " + filename_P);
-            encoded_images.put(filename_I + "_I.jpeg", image_I);
-            encoded_images.put(filename_I + "_P.jpeg", image_P);
+        BufferedImage last_P = images[0];
+        encoded_images.put(filenames[0].substring(0,filenames[0].indexOf('.')) + "_I.jpeg", last_P);
+        
+        int currentGop = 0;
+        for (int i = 1; i < files_images.size(); i++){
+            image_I = currentGop < argParser.getGop() ? image_I = last_P : images[i-1];
+            image_P = images[i];
             data_P = new HashMap<>();
-            Codec.Encode(new BufferedImage(image_I.getColorModel(), (WritableRaster)image_I.getData(),
+            image_P = Codec.Encode(new BufferedImage(image_I.getColorModel(), (WritableRaster)image_I.getData(),
                                 image_I.getColorModel().isAlphaPremultiplied(), null), image_P, data_P);
+            last_P = new BufferedImage(image_P.getColorModel(), (WritableRaster)image_P.getData(),
+                                image_P.getColorModel().isAlphaPremultiplied(), null);
+            filename_I = filenames[i].substring(0,filenames[i].indexOf('.'));
+            
+            encoded_images.put(filename_I + ".jpeg", image_P);
             data.put(filename_I,data_P);
-        }        
+            
+            currentGop++;
+            currentGop = currentGop >= argParser.getGop() ? 0 : currentGop;
+        }
         System.out.println("Encoded images: " + encoded_images.size());
         return encoded_images;
     }
@@ -107,17 +113,21 @@ public class Main {
         
         String[] filenames  = new String[files_images.size()];
         filenames = (String[]) files_images.keySet().toArray(filenames);
-        String key = "";
+        String key;
+        String [] keys = new String[data.size()];
+        keys = data.keySet().toArray(keys);
+        int numKey = 0;
         for (int I = 0, P = 1; I < files_images.size(); I+=2, P+=2){
             image_I = images[I];
             filename_I = filenames[I];
             
             image_P = images[P];
             filename_P = filenames[P];
-            key = filename_I.substring(0, filename_I.indexOf('_'));
             decoded_images.put(filename_I, image_I);
-            decoded_images.put(key + ".jpeg", Codec.Decode(image_I, image_P, data.get(key)));
+            decoded_images.put(keys[numKey] + ".jpeg", Codec.Decode(image_I, image_P, data.get(keys[numKey])));
+            numKey++;
         }
+        System.out.println("Decoded images: " + decoded_images.size());
         return decoded_images;
     }
     private static void showImages(ArrayList<BufferedImage> images, MainWindow window){
