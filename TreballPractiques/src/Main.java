@@ -49,8 +49,6 @@ public class Main {
             FileHelper.saveImagesToZip(encoded_images,"encoded");
             Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
             
-            FileHelper.saveImagesToZip(encoded_images,"encoded");
-            
             //Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
             showImages(new ArrayList<>(decoded_images.values()),  mainWindow);            
             //TODO : Fer que guardi aquestes imatges en un zip
@@ -71,7 +69,7 @@ public class Main {
     
     private static Map<String, BufferedImage> encode(Map<String, BufferedImage> files_images, Map<String, Map<Integer,ArrayList<Integer>>> data){
         BufferedImage image_I, image_P;
-        String filename_I, filename_P;
+        String filename_I;
         Map<String, BufferedImage> encoded_images = new TreeMap<>();
         
         BufferedImage [] images  = new BufferedImage[files_images.size()];
@@ -107,27 +105,34 @@ public class Main {
     
     private static Map<String, BufferedImage> decode(Map<String, BufferedImage> files_images, Map<String, Map<Integer,ArrayList<Integer>>> data){
         BufferedImage image_I, image_P;
-        String filename_I, filename_P;
+        String filename_I;
         Map<String, BufferedImage> decoded_images = new TreeMap<>();
         BufferedImage [] images  = new BufferedImage[files_images.size()];
         images = (BufferedImage[]) files_images.values().toArray(images);
         
         String[] filenames  = new String[files_images.size()];
         filenames = (String[]) files_images.keySet().toArray(filenames);
-        String key;
         String [] keys = new String[data.size()];
         keys = data.keySet().toArray(keys);
         int numKey = 0;
-        for (int I = 0, P = 1; I < files_images.size(); I+=2, P+=2){
+        /*for (int I = 0, P = 1; I < files_images.size(); I+=2, P+=2){
             image_I = images[I];
             filename_I = filenames[I];
             
             image_P = images[P];
-            filename_P = filenames[P];
             decoded_images.put(filename_I, image_I);
             decoded_images.put(keys[numKey] + ".jpeg", Codec.Decode(image_I, image_P, data.get(keys[numKey])));
             numKey++;
+        }*/
+        
+        decoded_images.put(filenames[0],  images[0]);
+        for (int i = 1; i < files_images.size(); i++){
+            image_I = images[i-1];
+            image_P = images[i];
+            decoded_images.put(keys[i-1] + ".jpeg", Codec.Decode(image_I, image_P, data.get(keys[i-1])));
         }
+        
+    
         System.out.println("Decoded images: " + decoded_images.size());
         return decoded_images;
     }

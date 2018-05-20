@@ -169,8 +169,11 @@ public class Codec {
             for (int p = 0; p < widthTile; p++) {
                 img.setRGB(h + tes_x0, p+ tes_y0, new Color((int)rtd, (int)gtd, (int)btd).getRGB());
             }
-        }
-        /*for  (int i = 0; i < widthTile; i++){
+        }/*
+        Color color_tes;
+        Color color_img;
+        int[] rgb_diff;
+        for  (int i = 0; i < widthTile; i++){
             for (int j = 0; j < heightTile; j++){
                 color_tes = new Color(tes.getRGB(i, j));
                 color_img = new Color(img.getRGB(i + tes_x0, j + tes_y0));
@@ -201,7 +204,7 @@ public class Codec {
             int y0_dest = entry.getValue().get(1);
             ImageTile tesela = list_teselas.get(numTile);
             BufferedImage tes = tesela.getImage();
-            img = smooth_tile_sum(base, tes, x0_dest, y0_dest);
+            img = smooth_tile_sum(img, tes, x0_dest, y0_dest);
         }
             
         /*while (k >= 0) {
