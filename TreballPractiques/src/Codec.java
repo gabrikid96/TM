@@ -201,7 +201,7 @@ public class Codec {
             int y0_dest = entry.getValue().get(1);
             ImageTile tesela = list_teselas.get(numTile);
             BufferedImage tes = tesela.getImage();
-            img = smooth_tile_sum(img, tes, x0_dest, y0_dest);
+            img = smooth_tile_sum(base, tes, x0_dest, y0_dest);
         }
             
         /*while (k >= 0) {

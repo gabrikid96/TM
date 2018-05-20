@@ -49,13 +49,14 @@ public class Main {
             FileHelper.saveImagesToZip(encoded_images,"encoded");
             Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
             
-            //Proba per mostrar les decode
-            showImages(new ArrayList<>(decoded_images.values()),  mainWindow);
+            FileHelper.saveImagesToZip(encoded_images,"encoded");
             
+            //Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
+            showImages(new ArrayList<>(decoded_images.values()),  mainWindow);            
             //TODO : Fer que guardi aquestes imatges en un zip
             /*ZipHelper.*/
             //saveImages(encoded_images, "encoded");
-            //FileHelper.saveImagesToZip(encoded_images,"encoded");
+            
             
         }
         
@@ -152,7 +153,7 @@ public class Main {
         currentImage = images.get(currentFrame);
         window.UpdateIcon(currentImage);
         currentFrame++;
-        currentFrame = currentFrame > images.size() - 1 ? 0 : currentFrame++;
+        currentFrame = currentFrame > images.size() - 1 ? 0 : currentFrame;
     }
     
     private static Map<String, BufferedImage> applyFilters(Map<String, BufferedImage> files_images){
