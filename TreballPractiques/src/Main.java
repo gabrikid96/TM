@@ -2,21 +2,12 @@
 import com.beust.jcommander.JCommander;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-import javax.imageio.ImageIO;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -47,13 +38,15 @@ public class Main {
             Map<String, Map<Integer,ArrayList<Integer>>> data = new TreeMap<>();
             Map<String, BufferedImage> encoded_images = encode(files_images, data);
             FileHelper.saveImagesToZip(encoded_images,"encoded");
+            
             Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
+            FileHelper.saveImagesToZip(decoded_images,"decoded");
             
             //Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
             showImages(new ArrayList<>(decoded_images.values()),  mainWindow);            
             //TODO : Fer que guardi aquestes imatges en un zip
             /*ZipHelper.*/
-            //saveImages(encoded_images, "encoded");
+            
             
             
         }
@@ -68,6 +61,7 @@ public class Main {
     }
     
     private static Map<String, BufferedImage> encode(Map<String, BufferedImage> files_images, Map<String, Map<Integer,ArrayList<Integer>>> data){
+        long T_ini = System.nanoTime();
         BufferedImage image_I, image_P;
         String filename_I;
         Map<String, BufferedImage> encoded_images = new TreeMap<>();
@@ -84,9 +78,10 @@ public class Main {
         
         int currentGop = 0;
         for (int i = 1; i < files_images.size(); i++){
-            image_I = currentGop < argParser.getGop() ? image_I = last_P : images[i-1];
+            image_I = currentGop < argParser.getGop() ? last_P : images[i-1];
             image_P = images[i];
             data_P = new HashMap<>();
+            System.out.println("==================\nFilename " + filenames[i]);
             image_P = Codec.Encode(new BufferedImage(image_I.getColorModel(), (WritableRaster)image_I.getData(),
                                 image_I.getColorModel().isAlphaPremultiplied(), null), image_P, data_P);
             last_P = new BufferedImage(image_P.getColorModel(), (WritableRaster)image_P.getData(),
@@ -98,14 +93,15 @@ public class Main {
             
             currentGop++;
             currentGop = currentGop >= argParser.getGop() ? 0 : currentGop;
+            System.out.println("==================\n");
         }
         System.out.println("Encoded images: " + encoded_images.size());
+        System.out.printf("Total Time Encode %.2fs\n\n", (System.nanoTime() - T_ini)* 1e-9);
         return encoded_images;
     }
     
     private static Map<String, BufferedImage> decode(Map<String, BufferedImage> files_images, Map<String, Map<Integer,ArrayList<Integer>>> data){
         BufferedImage image_I, image_P;
-        String filename_I;
         Map<String, BufferedImage> decoded_images = new TreeMap<>();
         BufferedImage [] images  = new BufferedImage[files_images.size()];
         images = (BufferedImage[]) files_images.values().toArray(images);
@@ -124,12 +120,13 @@ public class Main {
             decoded_images.put(keys[numKey] + ".jpeg", Codec.Decode(image_I, image_P, data.get(keys[numKey])));
             numKey++;
         }*/
-        
+        image_I = images[0];
         decoded_images.put(filenames[0],  images[0]);
         for (int i = 1; i < files_images.size(); i++){
-            image_I = images[i-1];
             image_P = images[i];
-            decoded_images.put(keys[i-1] + ".jpeg", Codec.Decode(image_I, image_P, data.get(keys[i-1])));
+            image_I = Codec.Decode(image_I, image_P, data.get(keys[i-1]));
+            decoded_images.put(keys[i-1] + ".jpeg", image_I);
+            
         }
         
     
