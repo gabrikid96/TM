@@ -18,6 +18,7 @@ import java.util.Map.Entry;
  * @author grodrich7.alumnes
  */
 public class Codec {
+    public static final float SIMILARITY_THRESHOLD = 5.0F;
     
     public static BufferedImage Encode(BufferedImage baseImage, BufferedImage pImage, Map<Integer,ArrayList<Integer>> data) {
         long T_ini = System.nanoTime();
@@ -48,7 +49,8 @@ public class Codec {
                                 result.getColorModel().isAlphaPremultiplied(), null);
                         
                         if (evaluateSimilarity(baseTile,tesela_destino) < ArgParser.getInstance().getQuality()){
-                            Color averageColor = getAverageColor(tesela_destino);
+                            float[] averageColorValues = getAverageColor(tesela_destino);
+                            Color averageColor =  new Color((int)averageColorValues[0], (int)averageColorValues[1], (int) averageColorValues[2]);
                             
                             for (int j = 0; j < tileHeight; j++) {
                                 for (int i = 0; i < tileWidth; i++) {
@@ -105,54 +107,12 @@ public class Codec {
   }
     
     private static double evaluateSimilarity(BufferedImage baseTile, BufferedImage pTile){
-        int alto_tesela, ancho_tesela;
-        float rt, gt, bt,n;
-        alto_tesela = baseTile.getHeight();
-        ancho_tesela = baseTile.getWidth();
-            
-        rt = 0.0F;
-        gt = 0.0F;
-        bt = 0.0F;
-        n = alto_tesela * ancho_tesela;
-
-        for (int i = 0; i < ancho_tesela; i++) {
-            for (int j = 0; j < alto_tesela; j++) {
-                try{
-                    Color c = new Color(baseTile.getRGB(i, j));
-                    rt += c.getRed();
-                    gt += c.getGreen();
-                    bt += c.getBlue();
-                }catch(Exception ex){                        
-                    System.out.println("I: " + i + " J: "+ j);
-                    throw ex;
-                }           
-            }
-        }
-        rt /= n;
-        gt /= n;
-        bt /= n;
-        
-        float rtd = 0.f;
-        float gtd = 0.f;
-        float btd = 0.f;
-        int nd = alto_tesela * ancho_tesela;
-        for (int h = 0; h < alto_tesela; h++) {
-            for (int p = 0; p < ancho_tesela; p++) {
-                Color cd = new Color(pTile.getRGB(p, h));
-                rtd += cd.getRed();
-                gtd += cd.getGreen();
-                btd += cd.getBlue();
-            }
-        }
-        rtd /= nd;
-        gtd /= nd;
-        btd /= nd;
-        
-        
-        return 10.0 * (Math.sqrt(rt - rtd) + Math.sqrt(gt - gtd) + Math.sqrt(bt - btd));
+        float[] averageBaseColor = getAverageColor(baseTile);
+        float[] averagePTile = getAverageColor(pTile);
+        return SIMILARITY_THRESHOLD * (Math.sqrt(averageBaseColor[0] - averagePTile[0]) + Math.sqrt(averageBaseColor[1] - averagePTile[1]) + Math.sqrt(averageBaseColor[2] - averagePTile[2]));
     }
     
-    private static Color getAverageColor(BufferedImage tile){
+    private static float[] getAverageColor(BufferedImage tile){
         int heightTile = tile.getHeight();
         int widthTile = tile.getWidth();
         float red = 0.f, green = 0.f, blue = 0.f;
@@ -165,7 +125,8 @@ public class Codec {
                 blue += cd.getBlue();
             }
         }
-        return new Color((int)(red /= totalPixels), (int)(green /= totalPixels), (int) (blue /= totalPixels));
+        return new float [] {red /= totalPixels,green /= totalPixels,blue /= totalPixels};
+        //return new Color((int)(red /= totalPixels), (int)(green /= totalPixels), (int) (blue /= totalPixels));
     }
     
     public static BufferedImage Decode(BufferedImage imageBase, BufferedImage imageToDecode, Map<Integer,ArrayList<Integer>> data) {
