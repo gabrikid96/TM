@@ -18,22 +18,22 @@ import java.util.Map.Entry;
  * @author grodrich7.alumnes
  */
 public class Codec {
-    public static final float SIMILARITY_THRESHOLD = 5.0F;
+    public static final float SIMILARITY_THRESHOLD = 10.0F;
     
     public static BufferedImage Encode(BufferedImage baseImage, BufferedImage pImage, Map<Integer,ArrayList<Integer>> data) {
         long T_ini = System.nanoTime();
         int numTiles = ArgParser.getInstance().getNTiles();
         ArrayList<ImageTile> list_tiles = getTiles(baseImage, numTiles);
         int seekRange = ArgParser.getInstance().getSeekRange();
-        BufferedImage result = new BufferedImage(pImage.getColorModel(), (WritableRaster)pImage.getData(), pImage.getColorModel().isAlphaPremultiplied(), null);
+        BufferedImage imageEncoded = new BufferedImage(pImage.getColorModel(), (WritableRaster)pImage.getData(), pImage.getColorModel().isAlphaPremultiplied(), null);
         int numTile = 0;
         for (ImageTile imageTile : list_tiles) {
             BufferedImage baseTile = imageTile.getImage();
-            WritableRaster  resultRaster = (WritableRaster)result.getData();
+            WritableRaster  resultRaster = (WritableRaster)imageEncoded.getData();
             int tes_x0 = imageTile.getStartX();
             int tes_y0 = imageTile.getStartY();
-            int imageHeight = result.getHeight();
-            int imageWidth = result.getWidth();
+            int imageHeight = imageEncoded.getHeight();
+            int imageWidth = imageEncoded.getWidth();
             int tileHeight = baseTile.getHeight();
             int tileWidth = baseTile.getWidth();
             
@@ -42,14 +42,14 @@ public class Codec {
                 for (int x = tes_x0 - seekRange; x <= tes_x0 + seekRange && !found; x++){
                     if (x >= 0 && x <= imageWidth - tileWidth && y >= 0 && y <= imageHeight - tileHeight)
                     {
-                        WritableRaster tesela_destino_wras = (WritableRaster)resultRaster.createChild(x, y, tileWidth,
+                        WritableRaster pRaster = (WritableRaster)resultRaster.createChild(x, y, tileWidth,
                                 tileHeight, 0, 0, null);
                         
-                        BufferedImage tesela_destino = new BufferedImage(result.getColorModel(), tesela_destino_wras,
-                                result.getColorModel().isAlphaPremultiplied(), null);
+                        BufferedImage pTile = new BufferedImage(imageEncoded.getColorModel(), pRaster,
+                                imageEncoded.getColorModel().isAlphaPremultiplied(), null);
                         
-                        if (evaluateSimilarity(baseTile,tesela_destino) < ArgParser.getInstance().getQuality()){
-                            float[] averageColorValues = getAverageColor(tesela_destino);
+                        if (evaluateSimilarity(baseTile,pTile) < ArgParser.getInstance().getQuality()){
+                            float[] averageColorValues = getAverageColor(pTile);
                             Color averageColor =  new Color((int)averageColorValues[0], (int)averageColorValues[1], (int) averageColorValues[2]);
                             
                             for (int j = 0; j < tileHeight; j++) {
@@ -65,7 +65,7 @@ public class Codec {
                             x0y0.add(y);
                             data.put(numTile, x0y0);
 
-                            result = new BufferedImage(pImage.getColorModel(), (WritableRaster)pImage.getData(),
+                            imageEncoded = new BufferedImage(pImage.getColorModel(), (WritableRaster)pImage.getData(),
                                 pImage.getColorModel().isAlphaPremultiplied(), null);
                             found = true;
                         }                                     
@@ -76,7 +76,7 @@ public class Codec {
         }
         System.out.println("Num coincidencias: " + data.size());
         System.out.printf("Time Encode %.2fms\n", (System.nanoTime() - T_ini)* 1e-6);
-        return result;
+        return imageEncoded;
     }
     
     
@@ -126,7 +126,6 @@ public class Codec {
             }
         }
         return new float [] {red /= totalPixels,green /= totalPixels,blue /= totalPixels};
-        //return new Color((int)(red /= totalPixels), (int)(green /= totalPixels), (int) (blue /= totalPixels));
     }
     
     public static BufferedImage Decode(BufferedImage imageBase, BufferedImage imageToDecode, Map<Integer,ArrayList<Integer>> data) {

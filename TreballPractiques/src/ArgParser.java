@@ -28,6 +28,18 @@ public class ArgParser {
          return output;
     }
     
+    @Parameter(names ={"--encode","-e"}, required = false, description = "Encode")
+    private boolean encode;
+    public boolean getEncode(){
+        return encode;
+    }
+     
+    @Parameter(names ={"--decode","-d"}, required = false, description = "Decode")
+    private boolean decode;
+    public boolean getDecode(){
+        return decode;
+    }
+    
     @Parameter(names={"--fps", "-fps"},required = false, description = "Frames per second to play images", validateWith=MaxIntValidator.class)
     private int fps;
     public int getFps() {
@@ -83,16 +95,6 @@ public class ArgParser {
         return batch;
     }
     
-        @Parameter(names ={"--encode","-e"}, required = false, description = "Encode")
-    private boolean encode;
-    public boolean getEncode(){
-        return encode;
-    }
-     
-    @Parameter(names ={"--decode","-d"}, required = false, description = "Decode")
-    private boolean decode;
-    public boolean getDecode(){
-        return decode;
-    }
+    
 }
 

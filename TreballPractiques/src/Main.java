@@ -2,7 +2,9 @@
 import com.beust.jcommander.JCommander;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -32,23 +34,41 @@ public class Main {
         
         MainWindow mainWindow = new MainWindow();
         
-        Map<String, BufferedImage> files_images = FileHelper.getImagesFromZip(argParser.getInput());
-                
+        //TODO : establir valor per defecte de GOP en cas de no informar-se per paràmetre
+        //TODO : establir valor per defecte de nTiles en cas de no informar-se per paràmetre
+        //TODO : establir valor per defecte de seekRange en cas de no informar-se per paràmetre
+        //TODO : establir valor per defecte de quality en cas de no informar-se per paràmetre
         if (argParser.getEncode()){
+            //TODO : agafar el tamany del zip inicial per després comparar (funcio donat un nameFile return un size?)
+            int fileSize = 0;
+            Map<String, BufferedImage> files_images = FileHelper.getImagesFromZip(argParser.getInput());
+            files_images = applyFilters(files_images);
+            showImages(new ArrayList<>(files_images.values()),  mainWindow);
+            
+            //TODO : passar files_images a jpeg
             Map<String, Map<Integer,ArrayList<Integer>>> data = new TreeMap<>();
             Map<String, BufferedImage> encoded_images = encode(files_images, data);
-            FileHelper.saveImagesToZip(encoded_images,"encoded");
             
-            Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
+            //TODO : agafar el tamany del fitxer que guardarem.
+            //TODO : guardar el data.
+            int newSize = 0;
+            if (argParser.getOutput() != null && !argParser.getOutput().isEmpty()){
+                FileHelper.saveImagesToZip(encoded_images,argParser.getOutput());
+            }else{
+                String timeStamp = new SimpleDateFormat("HH-mm").format(Calendar.getInstance().getTime());
+                FileHelper.saveImagesToZip(encoded_images,"Encoded_"+timeStamp);
+            }
+            
+            //TODO : imprimir el % de compressio
+            
+        }
+        
+        if (argParser.getDecode()){
+            //TODO : falta veure com afagem el data per decodificar.
+            Map<String, BufferedImage> encoded_images = FileHelper.getImagesFromZip(argParser.getInput());
+            /*Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
             FileHelper.saveImagesToZip(decoded_images,"decoded");
-            
-            //Map<String, BufferedImage> decoded_images = decode(encoded_images,data);
-            showImages(new ArrayList<>(decoded_images.values()),  mainWindow);            
-            //TODO : Fer que guardi aquestes imatges en un zip
-            /*ZipHelper.*/
-            
-            
-            
+            showImages(new ArrayList<>(decoded_images.values()),  mainWindow);*/
         }
         
         
@@ -110,23 +130,12 @@ public class Main {
         filenames = (String[]) files_images.keySet().toArray(filenames);
         String [] keys = new String[data.size()];
         keys = data.keySet().toArray(keys);
-        int numKey = 0;
-        /*for (int I = 0, P = 1; I < files_images.size(); I+=2, P+=2){
-            image_I = images[I];
-            filename_I = filenames[I];
-            
-            image_P = images[P];
-            decoded_images.put(filename_I, image_I);
-            decoded_images.put(keys[numKey] + ".jpeg", Codec.Decode(image_I, image_P, data.get(keys[numKey])));
-            numKey++;
-        }*/
         image_I = images[0];
         decoded_images.put(filenames[0],  images[0]);
         for (int i = 1; i < files_images.size(); i++){
             image_P = images[i];
             image_I = Codec.Decode(image_I, image_P, data.get(keys[i-1]));
             decoded_images.put(keys[i-1] + ".jpeg", image_I);
-            
         }
         
     
