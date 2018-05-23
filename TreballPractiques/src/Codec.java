@@ -226,7 +226,11 @@ public class Codec {
     public static BufferedImage decode(BufferedImage imageBase, BufferedImage imageToDecode, Map<Integer,ArrayList<Integer>> data) {
         ArrayList<ImageTile> list_teselas = Codec.getTiles(imageBase,ArgParser.getInstance().getNTiles());
         for (Entry<Integer, ArrayList<Integer>> entry : data.entrySet()){
-            imageToDecode = restoreTileColor(imageToDecode, list_teselas.get(entry.getKey()).getImage(), entry.getValue().get(0), entry.getValue().get(1));
+            try{
+                imageToDecode = restoreTileColor(imageToDecode, list_teselas.get(entry.getKey()).getImage(), entry.getValue().get(0), entry.getValue().get(1));
+            }catch(Exception ex){
+                System.out.println("Hello");
+            }
         }        
         return imageToDecode;
     }

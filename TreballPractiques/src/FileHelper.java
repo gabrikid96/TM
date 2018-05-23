@@ -9,13 +9,18 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
@@ -27,9 +32,7 @@ import javax.imageio.ImageIO;
  * 
  */
 public class FileHelper
-{     
-    //private static final String[] IMAGE_EXTENSIONS = {"png", "bmp", "jpeg", "jpg", "gif"};
-    
+{         
     public static Map<String, BufferedImage> getImagesFromZip(String sourcePath){
         
         Map<String, BufferedImage> images = new TreeMap<>();
@@ -40,7 +43,9 @@ public class FileHelper
          while(ze!=null){
             String fileName = ze.getName();
             currentImage = getImage(fileName, sourcePath);
-            images.put(fileName.substring(0, fileName.indexOf(".")) + ".jpeg", currentImage);
+            if (currentImage != null){
+                images.put(fileName.substring(0, fileName.indexOf(".")) + ".jpeg", currentImage);
+            }
             ze = zis.getNextEntry();
          }
 
@@ -52,7 +57,39 @@ public class FileHelper
         return images;
     }
     
-    private static BufferedImage getImage(String fileName, String sourcePath) throws IOException{
+    public static Map<String, Map<Integer, ArrayList<Integer>>> getEncodeDataFromZip(String sourcePath) {
+        try{            
+        ZipInputStream zis = new ZipInputStream(new FileInputStream(sourcePath));
+        ZipEntry ze = zis.getNextEntry();
+        while(ze!=null){
+            String fileName = ze.getName();
+            if (fileName.equals("data.txt")){
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                ZipFile zf = new ZipFile(sourcePath);
+                ZipEntry entry = zf.getEntry(fileName);
+                InputStream in = zf.getInputStream(entry);
+                byte[] buffer = new byte[4096];
+                for(int n; (n = in.read(buffer)) != -1; )
+                    out.write(buffer, 0, n);
+                in.close();
+                zf.close();
+                out.close();
+                zis.closeEntry();
+                zis.close();
+                byte[] bytes = out.toByteArray();
+                return string2map(new String(bytes));
+            }
+            ze = zis.getNextEntry();
+        }
+
+        zis.closeEntry();
+        zis.close();
+        }catch(IOException ex){
+        }        
+        return null;
+    }
+        
+    private static BufferedImage getImage(String fileName, String sourcePath) {
         try{
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ZipFile zf = new ZipFile(sourcePath);
@@ -74,7 +111,7 @@ public class FileHelper
             
             return img;
             
-        }catch(Exception exception){}
+        }catch(Exception exception ){}
         return null;
     }
     
@@ -97,6 +134,68 @@ public class FileHelper
         }catch (IOException ex) {
             Logger.getLogger(FileHelper.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+    
+    public static void saveImagesToZip(Map<String, BufferedImage> files_images, String destinationPath, Map<String, Map<Integer,ArrayList<Integer>>> data){
+        try{
+            FileOutputStream outputStream = new FileOutputStream(destinationPath + ".zip");
+            ZipOutputStream zos = new ZipOutputStream(outputStream);
+            ZipEntry zipEntry;
+            String filename;
+            for (Entry<String,BufferedImage> entry : files_images.entrySet()){
+                filename = entry.getKey().substring(0,entry.getKey().indexOf('.')) + ".jpeg";
+                zipEntry = new ZipEntry(filename);
+                zos.putNextEntry(zipEntry);
+                ImageIO.write(entry.getValue(),"jpeg",zos);
+                zos.closeEntry();
+            }
+            ZipEntry e = new ZipEntry("data.txt");
+            zos.putNextEntry(e);
+            byte[] dataBytes = data.toString().getBytes();
+            zos.write(dataBytes, 0, dataBytes.length);
+            zos.close();
+        }catch (FileNotFoundException ex) {
+            Logger.getLogger(FileHelper.class.getName()).log(Level.SEVERE, null, ex);
+        }catch (IOException ex) {
+            Logger.getLogger(FileHelper.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+
+    
+    private static Map<String, Map<Integer,ArrayList<Integer>>> string2map(String data){
+        data = data.substring(1,data.length()-1);
+        Pattern p = Pattern.compile("\\{(.*?)\\}");
+        Matcher m = p.matcher(data);
+        ArrayList<String> values = new ArrayList<>();
+        while(m.find()) {
+            values.add(m.group(1));
+        }
+        p = Pattern.compile("(?:[ a-zA-Z ])?([a-zA-Z]+[0-9]{1,}+)");
+        m = p.matcher(data);
+        ArrayList<String> keys = new ArrayList<>();
+        while(m.find()) {
+            keys.add(m.group(1));
+        }       
+        char ch = keys.get(1).charAt(0);
+        keys.set(0, ch + keys.get(0));
+        Map<String, Map<Integer,ArrayList<Integer>>> dataH = new TreeMap<>();
+        for (int i = 0; i < keys.size(); i++){
+            String [] coincidencia = values.get(i).split("],");
+             Map<Integer,ArrayList<Integer>> c = new HashMap();
+            for (int j = 0; j < coincidencia.length; j++){
+                int key = Integer.parseInt(coincidencia[j].substring(0,coincidencia[j].indexOf('=')).trim());
+                String[] x0y0 = coincidencia[j].substring(coincidencia[j].indexOf('=')+1,coincidencia[j].length()).split(",");
+                String x = x0y0[0].replace("[","").replace("]", "").trim();
+                String y = x0y0[1].replace("[","").replace("]", "").trim();
+                ArrayList<Integer> xy = new ArrayList<>();
+                xy.add(Integer.parseInt(x));
+                xy.add(Integer.parseInt(y));
+                c.put(key, xy);
+            }
+            dataH.put(keys.get(i), c);
+        }        
+        return dataH;
     }
     
     public static void saveImages(Map<String, BufferedImage> files_images, String destinationPath){
@@ -130,11 +229,6 @@ public class FileHelper
         
         return newBufferedImage;
     }
-    /*private static String getFileExtension(String fileName) {
-        if(fileName.lastIndexOf(".") != -1 && fileName.lastIndexOf(".") != 0)
-        return fileName.substring(fileName.lastIndexOf(".")+1);
-        else return "";
-    }*/
     
     public static double getFileSize(String filePath){
         File file =new File(filePath);

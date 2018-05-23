@@ -42,9 +42,8 @@ public class Main {
             double fileSize = FileHelper.getFileSize(argParser.getInput());
             Map<String, BufferedImage> files_images = FileHelper.getImagesFromZip(argParser.getInput());
             files_images = applyFilters(files_images);
-            showImages(new ArrayList<>(files_images.values()),  mainWindow);
+            //showImages(new ArrayList<>(files_images.values()),  mainWindow);
             
-            //TODO : passar files_images a jpeg
             Map<String, Map<Integer,ArrayList<Integer>>> data = new TreeMap<>();
             Map<String, BufferedImage> encoded_images = Codec.encodeImages(files_images, data);
             
@@ -52,21 +51,26 @@ public class Main {
             String outputName = argParser.getOutput() != null && !argParser.getOutput().isEmpty() ? 
                     argParser.getOutput() : //si tenim output
                     "Encoded_" + new SimpleDateFormat("HH-mm").format(Calendar.getInstance().getTime());//si no en tenim, fiquem un per defecte
-            FileHelper.saveImagesToZip(encoded_images,outputName);
+            FileHelper.saveImagesToZip(encoded_images,outputName,data);
             double newSize = FileHelper.getFileSize(outputName+".zip");
             System.out.printf("Input size: %.2f KB\n", fileSize);      
             System.out.printf("Output size: %.2f KB\n", newSize);    
             System.out.printf("Compression rate: %.2f\n", (fileSize/newSize));           
             System.out.printf("Space saving: %.2f ", (100 - (fileSize * newSize)));
             System.out.println("%");
+            Map<String, BufferedImage> decoded_images = Codec.decodeImages(encoded_images,data);
+            showImages(new ArrayList<>(decoded_images.values()),  mainWindow);
+            System.out.println(data.toString());
         }
         
         if (argParser.getDecode()){
             //TODO : falta veure com afagem el data per decodificar.
             Map<String, BufferedImage> encoded_images = FileHelper.getImagesFromZip(argParser.getInput());
-            /*Map<String, BufferedImage> decoded_images = Codec.decode(encoded_images,data);
+            Map<String, Map<Integer,ArrayList<Integer>>> data = FileHelper.getEncodeDataFromZip(argParser.getInput());
+            System.out.println(data.toString());
+            Map<String, BufferedImage> decoded_images = Codec.decodeImages(encoded_images,data);
             FileHelper.saveImagesToZip(decoded_images,"decoded");
-            showImages(new ArrayList<>(decoded_images.values()),  mainWindow);*/
+            showImages(new ArrayList<>(decoded_images.values()),  mainWindow);
         }
         
         
