@@ -1,4 +1,5 @@
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -8,6 +9,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -37,7 +40,7 @@ public class FileHelper
          while(ze!=null){
             String fileName = ze.getName();
             currentImage = getImage(fileName, sourcePath);
-            images.put(fileName, currentImage);
+            images.put(fileName.substring(0, fileName.indexOf(".")) + ".jpeg", currentImage);
             ze = zis.getNextEntry();
          }
 
@@ -63,6 +66,12 @@ public class FileHelper
             out.close();
             byte[] bytes = out.toByteArray();
             BufferedImage img =  ImageIO.read(new ByteArrayInputStream(bytes));
+            String img_extension = URLConnection.guessContentTypeFromStream(new ByteArrayInputStream(bytes));
+            
+            if(!img_extension.substring(img_extension.indexOf("/")+1, img_extension.length()).equals("jpeg")){
+                img = imageToJpeg(img);
+            }
+            
             return img;
             
         }catch(Exception exception){}
@@ -113,7 +122,14 @@ public class FileHelper
         } catch (IOException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }    
+    }
+
+    private static BufferedImage imageToJpeg(BufferedImage img){
+        BufferedImage newBufferedImage = new BufferedImage(img.getWidth(),img.getHeight(), BufferedImage.TYPE_INT_RGB);
+	newBufferedImage.createGraphics().drawImage(img, 0, 0, Color.WHITE, null);
+        
+        return newBufferedImage;
+    }
     /*private static String getFileExtension(String fileName) {
         if(fileName.lastIndexOf(".") != -1 && fileName.lastIndexOf(".") != 0)
         return fileName.substring(fileName.lastIndexOf(".")+1);
