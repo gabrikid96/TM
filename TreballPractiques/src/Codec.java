@@ -6,21 +6,99 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/**
- *
- * @author grodrich7.alumnes
- */
 public class Codec {
+    /**
+     * Grau de similitud
+     */
     public static final float SIMILARITY_THRESHOLD = 10.0F;
     
-    public static BufferedImage Encode(BufferedImage baseImage, BufferedImage pImage, Map<Integer,ArrayList<Integer>> data) {
+    /**
+     * Metode que recull una serie d'imatges i les codifica segons el GOP establert.
+     * @param files_images imatges a codificar
+     * @param data dades a omplir, per a cada imatge ens guardem les tesel·les que hem eliminat
+     * @return imatges codificades
+     */
+    public static Map<String, BufferedImage> encodeImages(Map<String, BufferedImage> files_images, Map<String, Map<Integer,ArrayList<Integer>>> data){
+        long T_ini = System.nanoTime();
+        BufferedImage image_I, image_P;
+        String filename_I;
+        Map<String, BufferedImage> encoded_images = new TreeMap<>();
+        
+        BufferedImage [] images  = new BufferedImage[files_images.size()];
+        images = (BufferedImage[]) files_images.values().toArray(images);
+        
+        String[] filenames  = new String[files_images.size()];
+        filenames = (String[]) files_images.keySet().toArray(filenames);
+        
+        Map<Integer,ArrayList<Integer>> data_P;
+        BufferedImage last_P = images[0];
+        encoded_images.put(filenames[0].substring(0,filenames[0].indexOf('.')) + "_I.jpeg", last_P);
+        
+        int currentGop = 0;
+        for (int i = 1; i < files_images.size(); i++){
+            image_I = currentGop < ArgParser.getInstance().getGop() ? last_P : images[i-1];
+            image_P = new BufferedImage(images[i].getColorModel(), (WritableRaster)images[i].getData(),
+                                images[i].getColorModel().isAlphaPremultiplied(), null);
+            data_P = new HashMap<>();
+            System.out.print("Filename " + filenames[i]);
+            image_P = Codec.encode(new BufferedImage(image_I.getColorModel(), (WritableRaster)image_I.getData(),
+                                image_I.getColorModel().isAlphaPremultiplied(), null), image_P, data_P);
+            last_P = new BufferedImage(image_P.getColorModel(), (WritableRaster)image_P.getData(),
+                                image_P.getColorModel().isAlphaPremultiplied(), null);
+            filename_I = filenames[i].substring(0,filenames[i].indexOf('.'));
+            
+            encoded_images.put(filename_I + ".jpeg", image_P);
+            data.put(filename_I,data_P);
+            
+            currentGop++;
+            currentGop = currentGop >= ArgParser.getInstance().getGop() ? 0 : currentGop;
+            //System.out.println("==================\n");
+        }
+        System.out.printf("Total Time Encode %.2fs\n\n", (System.nanoTime() - T_ini)* 1e-9);
+        return encoded_images;
+    }
+    
+
+    
+    /**
+     * Metode que recull una serie d'imatges i les descodifica
+     * @param files_images imatges a descodificar
+     * @param data dades que ens permet descodificarles
+     * @return imatges descodificades
+     */
+    public static Map<String, BufferedImage> decodeImages(Map<String, BufferedImage> files_images, Map<String, Map<Integer,ArrayList<Integer>>> data){
+        BufferedImage image_I, image_P;
+        Map<String, BufferedImage> decoded_images = new TreeMap<>();
+        BufferedImage [] images  = new BufferedImage[files_images.size()];
+        images = (BufferedImage[]) files_images.values().toArray(images);
+        
+        String[] filenames  = new String[files_images.size()];
+        filenames = (String[]) files_images.keySet().toArray(filenames);
+        String [] keys = new String[data.size()];
+        keys = data.keySet().toArray(keys);
+        image_I = images[0];
+        decoded_images.put(filenames[0],  images[0]);
+        for (int i = 1; i < files_images.size(); i++){
+            image_P = images[i];
+            image_I = Codec.decode(image_I, image_P, data.get(keys[i-1]));
+            decoded_images.put(keys[i-1] + ".jpeg", image_I);
+        }
+        
+    
+        System.out.println("Decoded images: " + decoded_images.size());
+        return decoded_images;
+    }
+    
+    /**
+     * Metode que codifica una imatge en base a una altra de referencia.
+     * @param baseImage imatge de referencia
+     * @param pImage imatge a codificar
+     * @param data dades a omplir en cas que tinguem que eliminar tesel·les.
+     * @return imatge codificada
+     */
+    public static BufferedImage encode(BufferedImage baseImage, BufferedImage pImage, Map<Integer,ArrayList<Integer>> data) {
         long T_ini = System.nanoTime();
         int numTiles = ArgParser.getInstance().getNTiles();
         ArrayList<ImageTile> list_tiles = getTiles(baseImage, numTiles);
@@ -57,9 +135,9 @@ public class Codec {
                                     pImage.setRGB(i + x, j + y, averageColor.getRGB());
                                 }
                             }
-                            System.out.println("Num tesela: " + numTile);
+                            /*System.out.println("Num tesela: " + numTile);
                             System.out.println("X0: " + x);
-                            System.out.println("Y0: " + y);
+                            System.out.println("Y0: " + y);*/
                             ArrayList<Integer> x0y0 = new ArrayList<>();
                             x0y0.add(x);
                             x0y0.add(y);
@@ -74,17 +152,16 @@ public class Codec {
             }
             numTile++;
         }
-        System.out.println("Num coincidencias: " + data.size());
-        System.out.printf("Time Encode %.2fms\n", (System.nanoTime() - T_ini)* 1e-6);
+        //System.out.println("Num coincidencias: " + data.size());
+        System.out.printf(" => Time Encode %.2fms\n", (System.nanoTime() - T_ini)* 1e-6);
         return imageEncoded;
     }
     
-    
     /**
-     *
-     * @param bi
-     * @param nTiles
-     * @return
+     * Metode que retorna una llista de tesel·les a partir d'una imatge
+     * @param bi imatge a tesel·lar.
+     * @param nTiles número de tesel·les (verticals i horitzontals) a dividir la imatge 
+     * @return 
      */
     public static ArrayList<ImageTile> getTiles(BufferedImage bi, int nTiles) {
     ArrayList<ImageTile> list_teselas = new ArrayList();
@@ -106,12 +183,23 @@ public class Codec {
     return list_teselas;
   }
     
+    /**
+     * Funcio que calcula la similitud entre 2 tesel·les.
+     * @param baseTile tesel·la base
+     * @param pTile tesel·la a comprimir.
+     * @return valor de qualitat
+     */
     private static double evaluateSimilarity(BufferedImage baseTile, BufferedImage pTile){
         float[] averageBaseColor = getAverageColor(baseTile);
         float[] averagePTile = getAverageColor(pTile);
         return SIMILARITY_THRESHOLD * (Math.sqrt(averageBaseColor[0] - averagePTile[0]) + Math.sqrt(averageBaseColor[1] - averagePTile[1]) + Math.sqrt(averageBaseColor[2] - averagePTile[2]));
     }
     
+    /**
+     * Retorna el valor promig d'una imatge, ja sigui una tesel·la com una imatge completa.
+     * @param tile imatge (o tesela)
+     * @return Llista amb els valors promig dels 3 canals (RGB)
+     */
     private static float[] getAverageColor(BufferedImage tile){
         int heightTile = tile.getHeight();
         int widthTile = tile.getWidth();
@@ -128,7 +216,14 @@ public class Codec {
         return new float [] {red /= totalPixels,green /= totalPixels,blue /= totalPixels};
     }
     
-    public static BufferedImage Decode(BufferedImage imageBase, BufferedImage imageToDecode, Map<Integer,ArrayList<Integer>> data) {
+    /**
+     * Decodifica una imatge basant-se en una altra imatge de referencia i les seves dades (tesel·les eliminades al encode).
+     * @param imageBase imatge de referencia
+     * @param imageToDecode imatge a decodificar
+     * @param data dades per a poder decodificar
+     * @return imatge descodificada
+     */
+    public static BufferedImage decode(BufferedImage imageBase, BufferedImage imageToDecode, Map<Integer,ArrayList<Integer>> data) {
         ArrayList<ImageTile> list_teselas = Codec.getTiles(imageBase,ArgParser.getInstance().getNTiles());
         for (Entry<Integer, ArrayList<Integer>> entry : data.entrySet()){
             imageToDecode = restoreTileColor(imageToDecode, list_teselas.get(entry.getKey()).getImage(), entry.getValue().get(0), entry.getValue().get(1));
@@ -136,6 +231,14 @@ public class Codec {
         return imageToDecode;
     }
         
+    /**
+     * Funcio que restaura el color original de la tesel·la de la imatge a codificar utilitzant la tesel·la base.
+     * @param imageToDecode Imatge a recuperar el color
+     * @param baseTile tesel·la de la imatge base d'on s'extraura el color
+     * @param tes_x0 posicio X de la tesel·la
+     * @param tes_y0 posicio Y de la tesel·la
+     * @return imatge restaurada (descodificada)
+     */
     private static BufferedImage restoreTileColor(BufferedImage imageToDecode, BufferedImage baseTile, int tes_x0, int tes_y0){
         int heightTile = baseTile.getHeight();
         int widthTile = baseTile.getWidth();
@@ -160,7 +263,6 @@ public class Codec {
         return imageToDecode;
     }
 
-    
 }
     
 

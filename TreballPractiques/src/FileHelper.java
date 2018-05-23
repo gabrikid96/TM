@@ -119,5 +119,16 @@ public class FileHelper
         return fileName.substring(fileName.lastIndexOf(".")+1);
         else return "";
     }*/
+    
+    public static double getFileSize(String filePath){
+        File file =new File(filePath);
+        if(file.exists()){
+            double bytes = file.length();
+            double kilobytes = (bytes / 1024);
+            double megabytes = (kilobytes / 1024);
+            return megabytes;
+        }
+        return 0;
+    }
 }
     
