@@ -70,6 +70,12 @@ public class ArgParser {
     public int getNTiles() {
         return nTiles;
     }
+
+    public void setnTiles(int nTiles) {
+        this.nTiles = nTiles;
+    }
+    
+    
     
     @Parameter(names={"--seekRange"}, required = false, description = "Value of seekRange", validateWith=MaxIntValidator.class)
     private int seekRange;

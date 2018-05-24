@@ -21,7 +21,8 @@ public class MainWindow extends javax.swing.JFrame {
     /**
      * Creates new form MainWindow
      */
-    public MainWindow() {
+    public MainWindow(String title) {
+        this.setTitle(title);
         initComponents();
         //setSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);  
         this.setLocationRelativeTo(null);  // *** this will center your app ***
@@ -65,7 +66,7 @@ public class MainWindow extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     
-    public void showWindow() {
+    public void showWindow(String title) {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
@@ -91,7 +92,7 @@ public class MainWindow extends javax.swing.JFrame {
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> {
-            new MainWindow().setVisible(true);
+            new MainWindow(title).setVisible(true);
         });
     }
 

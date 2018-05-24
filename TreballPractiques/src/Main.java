@@ -1,5 +1,6 @@
 
 import com.beust.jcommander.JCommander;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.text.SimpleDateFormat;
@@ -32,8 +33,8 @@ public class Main {
     public static void main(String args[]) {
         jComander = new JCommander(argParser, args);
         
-        MainWindow windowEncode = new MainWindow();
-        MainWindow windowDecode = new MainWindow();
+        MainWindow windowEncode = new MainWindow("Original");
+        MainWindow windowDecode = new MainWindow("Decoded");
         String outputName = argParser.getOutput() != null && !argParser.getOutput().isEmpty() ? 
                     argParser.getOutput() : //si tenim output
                     "Encoded_" + new SimpleDateFormat("HH-mm").format(Calendar.getInstance().getTime());//si no en tenim, fiquem un per defecte
@@ -42,8 +43,10 @@ public class Main {
         //TODO : establir valor per defecte de seekRange en cas de no informar-se per paràmetre
         //TODO : establir valor per defecte de quality en cas de no informar-se per paràmetre
         if (argParser.getEncode()){
-            double fileSize = FileHelper.getFileSize(argParser.getInput());
+            
             Map<String, BufferedImage> files_images = FileHelper.getImagesFromZip(argParser.getInput());
+            FileHelper.saveImagesToZip(files_images,"originals");
+            double fileSize = FileHelper.getFileSize("originals.zip");
             files_images = applyFilters(files_images);
             //showImages(new ArrayList<>(files_images.values()),  mainWindow);
             
@@ -52,54 +55,58 @@ public class Main {
             
             //TODO : guardar el data.
             
-            FileHelper.saveImagesToZip(encoded_images,outputName,data);
+            FileHelper.saveImagesToZip(encoded_images,outputName,data, argParser.getNTiles());
             double newSize = FileHelper.getFileSize(outputName+".zip");
-            System.out.printf("Input size: %.2f KB\n", fileSize);      
-            System.out.printf("Output size: %.2f KB\n", newSize);    
+            System.out.printf("Input size: %.5f KB\n", fileSize);      
+            System.out.printf("Output size: %.5f KB\n", newSize);    
             System.out.printf("Compression rate: %.2f\n", (fileSize/newSize));           
-            System.out.printf("Space saving: %.2f ", (100 - (fileSize * newSize)));
+            System.out.printf("Space saving: %.2f ",100 - newSize*100/fileSize);
             System.out.println("%");
             //Map<String, BufferedImage> decoded_images = Codec.decodeImages(encoded_images,data);
-            showImages(new ArrayList<>(encoded_images.values()),  windowEncode);
-            System.out.println(data.toString());
+            showImages(new ArrayList<>(files_images.values()),  windowEncode);
+            //showImages(new ArrayList<>(decoded_images.values()),  windowDecode);
         }
         
         if (argParser.getDecode()){
             String referenceOutput = "./" + outputName + ".zip";
             //TODO : falta veure com afagem el data per decodificar.
-            Map<String, BufferedImage> encoded_images = FileHelper.getImagesFromZip(argParser.getInput());
-            Map<String, Map<Integer,ArrayList<Integer>>> data = FileHelper.getEncodeDataFromZip(referenceOutput);
-            System.out.println(data.toString());
+            Map<String, BufferedImage> encoded_images;
+            Map<String, Map<Integer,ArrayList<Integer>>> data;
+            if (argParser.getEncode()){
+                encoded_images = FileHelper.getImagesFromZip(referenceOutput);
+                data = FileHelper.getEncodeDataFromZip(referenceOutput);
+            }else{
+                encoded_images = FileHelper.getImagesFromZip(argParser.getInput());
+                data = FileHelper.getEncodeDataFromZip(argParser.getInput());
+            }
+            
             Map<String, BufferedImage> decoded_images = Codec.decodeImages(encoded_images,data);
             FileHelper.saveImagesToZip(decoded_images,"decoded");
             showImages(new ArrayList<>(decoded_images.values()),  windowDecode);
         }
-        
-        
-        /*files_images = applyFilters(files_images);
-        if (argParser.getOutput() != null && !argParser.getOutput().isEmpty()){
-            FileHelper.saveImages(files_images, argParser.getOutput());
-            
-        }        
-        showImages(new ArrayList<>(files_images.values()),  mainWindow);*/
     }
     
     
     private static void showImages(ArrayList<BufferedImage> images, MainWindow window){
-        window.setVisible(true);        
-        Timer timer;
-        timer = new Timer();
-        TimerTask task = new TimerTask() {
-            @Override
-            public void run(){
-                updateImage(images, window);
+        if (!argParser.getBatch()){
+            window.setVisible(true);        
+            Timer timer;
+            timer = new Timer();
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run(){
+                    updateImage(images, window);
+                }
+            };
+
+            if(argParser.getFps() != 0){
+                timer.schedule(task, 0, 1000L/argParser.getFps());
+            }else{
+                timer.schedule(task, 0, 1000L/10);
             }
-        };
         
-        if(argParser.getFps() != 0){
-            timer.schedule(task, 0, 1000L/argParser.getFps());
         }else{
-            timer.schedule(task, 0, 1000L/10);
+            window.dispatchEvent(new WindowEvent(window, WindowEvent.WINDOW_CLOSING));
         }
     }
     

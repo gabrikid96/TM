@@ -9,13 +9,17 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.StringReader;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -63,7 +67,7 @@ public class FileHelper
         ZipEntry ze = zis.getNextEntry();
         while(ze!=null){
             String fileName = ze.getName();
-            if (fileName.equals("data.txt")){
+            if (fileName.equals("data.dat")){
                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                 ZipFile zf = new ZipFile(sourcePath);
                 ZipEntry entry = zf.getEntry(fileName);
@@ -76,8 +80,11 @@ public class FileHelper
                 out.close();
                 zis.closeEntry();
                 zis.close();
-                byte[] bytes = out.toByteArray();
-                return string2map(new String(bytes));
+                
+                ByteArrayInputStream byteIn = new ByteArrayInputStream(out.toByteArray());
+                ObjectInputStream ois = new ObjectInputStream(byteIn);
+                return (Map<String, Map<Integer, ArrayList<Integer>>>) ois.readObject();
+                
             }
             ze = zis.getNextEntry();
         }
@@ -85,7 +92,9 @@ public class FileHelper
         zis.closeEntry();
         zis.close();
         }catch(IOException ex){
-        }        
+        } catch (ClassNotFoundException ex) {        
+            Logger.getLogger(FileHelper.class.getName()).log(Level.SEVERE, null, ex);
+        }
         return null;
     }
         
@@ -136,7 +145,7 @@ public class FileHelper
         }
     }
     
-    public static void saveImagesToZip(Map<String, BufferedImage> files_images, String destinationPath, Map<String, Map<Integer,ArrayList<Integer>>> data){
+    public static void saveImagesToZip(Map<String, BufferedImage> files_images, String destinationPath, Map<String, Map<Integer,ArrayList<Integer>>> data, int nTiles){
         try{
             FileOutputStream outputStream = new FileOutputStream(destinationPath + ".zip");
             ZipOutputStream zos = new ZipOutputStream(outputStream);
@@ -149,10 +158,14 @@ public class FileHelper
                 ImageIO.write(entry.getValue(),"jpeg",zos);
                 zos.closeEntry();
             }
-            ZipEntry e = new ZipEntry("data.txt");
+            ZipEntry e = new ZipEntry("data.dat");
             zos.putNextEntry(e);
-            byte[] dataBytes = data.toString().getBytes();
-            zos.write(dataBytes, 0, dataBytes.length);
+            ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+            ObjectOutputStream out = new ObjectOutputStream(byteOut);
+            out.writeObject(data);
+            zos.write(byteOut.toByteArray());
+            //writeData(zos,data);
+            zos.closeEntry();
             zos.close();
         }catch (FileNotFoundException ex) {
             Logger.getLogger(FileHelper.class.getName()).log(Level.SEVERE, null, ex);
@@ -164,7 +177,10 @@ public class FileHelper
 
     
     private static Map<String, Map<Integer,ArrayList<Integer>>> string2map(String data){
-        data = data.substring(1,data.length()-1);
+        int guio = data.indexOf('-');
+        String nTiles = data.substring(0,guio);
+        ArgParser.getInstance().setnTiles(Integer.parseInt(nTiles));
+        data = data.substring(guio+2,data.length()-1);
         Pattern p = Pattern.compile("\\{(.*?)\\}");
         Matcher m = p.matcher(data);
         ArrayList<String> values = new ArrayList<>();
@@ -243,5 +259,36 @@ public class FileHelper
         }
         return 0;
     }
+    
+    /*public static byte[] hash2bytes(Map<String, Map<Integer,ArrayList<Integer>>> data){
+
+    // Convert Map to byte array
+    ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+    ObjectOutputStream out = new ObjectOutputStream(byteOut);
+    out.writeObject(data);
+
+    // Parse byte array to Map
+    ByteArrayInputStream byteIn = new ByteArrayInputStream(byteOut.toByteArray());
+    ObjectInputStream in = new ObjectInputStream(byteIn);
+    Map<Integer, String> data2 = (Map<Integer, String>) in.readObject();
+    System.out.println(data2.toString());
+    }*/
+
+    private static void writeData(ZipOutputStream zos, Map<String,Map<Integer, ArrayList<Integer>>> data) throws IOException {
+        for (Entry<String, Map<Integer, ArrayList<Integer>>> entry : data.entrySet()){
+                zos.write(entry.getValue().size()); //num coincidences
+                
+                for (Entry<Integer, ArrayList<Integer>> e : entry.getValue().entrySet()){
+                    zos.write(e.getKey());//id tile
+                    zos.write(e.getValue().get(0));//x0
+                    zos.write(e.getValue().get(1));//y0
+                }
+        }    
+    }
+    
+    private static void getData(){
+        
+    }
+    
 }
     

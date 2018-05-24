@@ -12,7 +12,7 @@ public class Codec {
     /**
      * Grau de similitud
      */
-    public static final float SIMILARITY_THRESHOLD = 10.0F;
+    public static final float SIMILARITY_THRESHOLD = 3.0F;
     
     /**
      * Metode que recull una serie d'imatges i les codifica segons el GOP establert.
@@ -38,13 +38,18 @@ public class Codec {
         
         int currentGop = 0;
         for (int i = 1; i < files_images.size(); i++){
-            image_I = currentGop < ArgParser.getInstance().getGop() ? last_P : images[i-1];
+            if (currentGop < ArgParser.getInstance().getGop()){
+                image_I = last_P;
+            }else{
+                image_I = images[i-1];
+                currentGop = 0;
+            }
+            //image_I =  currentGop < ArgParser.getInstance().getGop() ? last_P : images[i-1];
             image_P = new BufferedImage(images[i].getColorModel(), (WritableRaster)images[i].getData(),
                                 images[i].getColorModel().isAlphaPremultiplied(), null);
             data_P = new HashMap<>();
             System.out.print("Filename " + filenames[i]);
-            image_P = Codec.encode(new BufferedImage(image_I.getColorModel(), (WritableRaster)image_I.getData(),
-                                image_I.getColorModel().isAlphaPremultiplied(), null), image_P, data_P);
+            image_P = Codec.encode(image_I, image_P, data_P);
             last_P = new BufferedImage(image_P.getColorModel(), (WritableRaster)image_P.getData(),
                                 image_P.getColorModel().isAlphaPremultiplied(), null);
             filename_I = filenames[i].substring(0,filenames[i].indexOf('.'));
@@ -53,7 +58,6 @@ public class Codec {
             data.put(filename_I,data_P);
             
             currentGop++;
-            currentGop = currentGop >= ArgParser.getInstance().getGop() ? 0 : currentGop;
             //System.out.println("==================\n");
         }
         System.out.printf("Total Time Encode %.2fs\n\n", (System.nanoTime() - T_ini)* 1e-9);
