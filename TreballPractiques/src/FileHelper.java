@@ -180,18 +180,21 @@ public class FileHelper
         char ch = keys.get(1).charAt(0);
         keys.set(0, ch + keys.get(0));
         Map<String, Map<Integer,ArrayList<Integer>>> dataH = new TreeMap<>();
+        
         for (int i = 0; i < keys.size(); i++){
             String [] coincidencia = values.get(i).split("],");
-             Map<Integer,ArrayList<Integer>> c = new HashMap();
+            Map<Integer,ArrayList<Integer>> c = new HashMap();
             for (int j = 0; j < coincidencia.length; j++){
-                int key = Integer.parseInt(coincidencia[j].substring(0,coincidencia[j].indexOf('=')).trim());
-                String[] x0y0 = coincidencia[j].substring(coincidencia[j].indexOf('=')+1,coincidencia[j].length()).split(",");
-                String x = x0y0[0].replace("[","").replace("]", "").trim();
-                String y = x0y0[1].replace("[","").replace("]", "").trim();
-                ArrayList<Integer> xy = new ArrayList<>();
-                xy.add(Integer.parseInt(x));
-                xy.add(Integer.parseInt(y));
-                c.put(key, xy);
+                if(coincidencia[j].length() != 0){
+                    int key = Integer.parseInt(coincidencia[j].substring(0,coincidencia[j].indexOf('=')).trim());
+                    String[] x0y0 = coincidencia[j].substring(coincidencia[j].indexOf('=')+1,coincidencia[j].length()).split(",");
+                    String x = x0y0[0].replace("[","").replace("]", "").trim();
+                    String y = x0y0[1].replace("[","").replace("]", "").trim();
+                    ArrayList<Integer> xy = new ArrayList<>();
+                    xy.add(Integer.parseInt(x));
+                    xy.add(Integer.parseInt(y));
+                    c.put(key, xy);
+                }
             }
             dataH.put(keys.get(i), c);
         }        
