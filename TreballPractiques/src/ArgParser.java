@@ -71,7 +71,7 @@ public class ArgParser {
         return nTiles;
     }
 
-    public void setnTiles(int nTiles) {
+    public void setNTiles(int nTiles) {
         this.nTiles = nTiles;
     }
     
@@ -83,16 +83,28 @@ public class ArgParser {
         return seekRange;
     }
     
+    public void setSeekRange(int sr) {
+        this.seekRange = sr;
+    }
+    
     @Parameter(names={"--quality"}, required = false, description = "Value of quality", validateWith=MaxIntValidator.class)
     private int quality;
     public int getQuality() {
         return quality;
     }
     
+    public void setQuality(int quality) {
+        this.quality = quality;
+    }
+    
     @Parameter(names = "--GOP", required = false, description = "GOP")
     private int gop;
     public int getGop(){
          return gop;
+    }
+    
+    public void setGOP(int gop) {
+        this.gop = gop;
     }
     
     @Parameter(names ={"--batch","-b"}, required = false, description = "")

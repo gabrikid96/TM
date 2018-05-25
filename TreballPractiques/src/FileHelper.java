@@ -60,43 +60,6 @@ public class FileHelper
      }        
         return images;
     }
-    
-    public static Map<String, Map<Integer, ArrayList<Integer>>> getEncodeDataFromZip(String sourcePath) {
-        try{            
-        ZipInputStream zis = new ZipInputStream(new FileInputStream(sourcePath));
-        ZipEntry ze = zis.getNextEntry();
-        while(ze!=null){
-            String fileName = ze.getName();
-            if (fileName.equals("data.dat")){
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                ZipFile zf = new ZipFile(sourcePath);
-                ZipEntry entry = zf.getEntry(fileName);
-                InputStream in = zf.getInputStream(entry);
-                byte[] buffer = new byte[4096];
-                for(int n; (n = in.read(buffer)) != -1; )
-                    out.write(buffer, 0, n);
-                in.close();
-                zf.close();
-                out.close();
-                zis.closeEntry();
-                zis.close();
-                
-                ByteArrayInputStream byteIn = new ByteArrayInputStream(out.toByteArray());
-                ObjectInputStream ois = new ObjectInputStream(byteIn);
-                return (Map<String, Map<Integer, ArrayList<Integer>>>) ois.readObject();
-                
-            }
-            ze = zis.getNextEntry();
-        }
-
-        zis.closeEntry();
-        zis.close();
-        }catch(IOException ex){
-        } catch (ClassNotFoundException ex) {        
-            Logger.getLogger(FileHelper.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        return null;
-    }
         
     private static BufferedImage getImage(String fileName, String sourcePath) {
         try{
@@ -162,8 +125,13 @@ public class FileHelper
             zos.putNextEntry(e);
             ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
             ObjectOutputStream out = new ObjectOutputStream(byteOut);
+            
             out.writeObject(data);
+            //out.writeInt(nTiles);
+            
             zos.write(byteOut.toByteArray());
+            //zos.write(nTiles);
+            
             //writeData(zos,data);
             zos.closeEntry();
             zos.close();
@@ -173,13 +141,50 @@ public class FileHelper
             Logger.getLogger(FileHelper.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    
+    public static Map<String, Map<Integer, ArrayList<Integer>>> getEncodeDataFromZip(String sourcePath) {
+        try{            
+        ZipInputStream zis = new ZipInputStream(new FileInputStream(sourcePath));
+        ZipEntry ze = zis.getNextEntry();
+        while(ze!=null){
+            String fileName = ze.getName();
+            if (fileName.equals("data.dat")){
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                ZipFile zf = new ZipFile(sourcePath);
+                ZipEntry entry = zf.getEntry(fileName);
+                InputStream in = zf.getInputStream(entry);
+                byte[] buffer = new byte[4096];
+                for(int n; (n = in.read(buffer)) != -1; )
+                    out.write(buffer, 0, n);
+                in.close();
+                zf.close();
+                out.close();
+                zis.closeEntry();
+                zis.close();
+                
+                ByteArrayInputStream byteIn = new ByteArrayInputStream(out.toByteArray());
+                ObjectInputStream ois = new ObjectInputStream(byteIn);
+                return (Map<String, Map<Integer, ArrayList<Integer>>>) ois.readObject();
+                
+            }
+            ze = zis.getNextEntry();
+        }
+
+        zis.closeEntry();
+        zis.close();
+        }catch(IOException ex){
+        } catch (ClassNotFoundException ex) {        
+            Logger.getLogger(FileHelper.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
 
 
     
     private static Map<String, Map<Integer,ArrayList<Integer>>> string2map(String data){
         int guio = data.indexOf('-');
         String nTiles = data.substring(0,guio);
-        ArgParser.getInstance().setnTiles(Integer.parseInt(nTiles));
+        ArgParser.getInstance().setNTiles(Integer.parseInt(nTiles));
         data = data.substring(guio+2,data.length()-1);
         Pattern p = Pattern.compile("\\{(.*?)\\}");
         Matcher m = p.matcher(data);

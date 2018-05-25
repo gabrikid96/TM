@@ -38,10 +38,7 @@ public class Main {
         String outputName = argParser.getOutput() != null && !argParser.getOutput().isEmpty() ? 
                     argParser.getOutput() : //si tenim output
                     "Encoded_" + new SimpleDateFormat("HH-mm").format(Calendar.getInstance().getTime());//si no en tenim, fiquem un per defecte
-        //TODO : establir valor per defecte de GOP en cas de no informar-se per paràmetre
-        //TODO : establir valor per defecte de nTiles en cas de no informar-se per paràmetre
-        //TODO : establir valor per defecte de seekRange en cas de no informar-se per paràmetre
-        //TODO : establir valor per defecte de quality en cas de no informar-se per paràmetre
+        initializeParameterValues();
         if (argParser.getEncode()){
             
             Map<String, BufferedImage> files_images = FileHelper.getImagesFromZip(argParser.getInput());
@@ -149,4 +146,23 @@ public class Main {
                 return image;
         }
     }  
+
+    private static void initializeParameterValues() {
+        if(argParser.getGop() == 0){
+            argParser.setGOP(3);
+            System.out.println("No s'ha trobat el paràmetre de GOP. S'utilitzarà el valor 3 per defecte");
+        }
+        if(argParser.getNTiles() == 0){
+            argParser.setNTiles(6);
+            System.out.println("No s'ha trobat el paràmetre de nTiles. S'utilitzarà el valor 6 per defecte");
+        }
+        if(argParser.getSeekRange() == 0){
+            argParser.setSeekRange(3);
+            System.out.println("No s'ha trobat el paràmetre del rang de búsqueda. S'utilitzarà el valor 3 per defecte");
+        }
+        if(argParser.getQuality() == 0){
+            argParser.setQuality(9);
+            System.out.println("No s'ha trobat el paràmetre de qualitat. S'utilitzarà el valor 9 per defecte");
+        }
+    }
 }

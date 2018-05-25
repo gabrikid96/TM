@@ -60,6 +60,9 @@ public class Codec {
             currentGop++;
             //System.out.println("==================\n");
         }
+        Map<Integer,ArrayList<Integer>> nTiles = new HashMap<>();
+        nTiles.put(ArgParser.getInstance().getNTiles(), null);
+        data.put("nTiles",nTiles);
         System.out.printf("Total Time Encode %.2fs\n\n", (System.nanoTime() - T_ini)* 1e-9);
         return encoded_images;
     }
@@ -73,6 +76,8 @@ public class Codec {
      * @return imatges descodificades
      */
     public static Map<String, BufferedImage> decodeImages(Map<String, BufferedImage> files_images, Map<String, Map<Integer,ArrayList<Integer>>> data){
+        HashMap nTiles = (HashMap) data.values().toArray()[data.values().toArray().length - 1];
+        int numTiles = (int) nTiles.keySet().toArray()[0];
         BufferedImage image_I, image_P;
         Map<String, BufferedImage> decoded_images = new TreeMap<>();
         BufferedImage [] images  = new BufferedImage[files_images.size()];
@@ -86,11 +91,10 @@ public class Codec {
         decoded_images.put(filenames[0],  images[0]);
         for (int i = 1; i < files_images.size(); i++){
             image_P = images[i];
-            image_I = Codec.decode(image_I, image_P, data.get(keys[i-1]));
+            image_I = Codec.decode(image_I, image_P, data.get(keys[i-1]),numTiles);
             decoded_images.put(keys[i-1] + ".jpeg", image_I);
         }
         
-    
         System.out.println("Decoded images: " + decoded_images.size());
         return decoded_images;
     }
@@ -102,7 +106,7 @@ public class Codec {
      * @param data dades a omplir en cas que tinguem que eliminar tesel·les.
      * @return imatge codificada
      */
-    public static BufferedImage encode(BufferedImage baseImage, BufferedImage pImage, Map<Integer,ArrayList<Integer>> data) {
+     public static BufferedImage encode(BufferedImage baseImage, BufferedImage pImage, Map<Integer,ArrayList<Integer>> data) {
         long T_ini = System.nanoTime();
         int numTiles = ArgParser.getInstance().getNTiles();
         ArrayList<ImageTile> list_tiles = getTiles(baseImage, numTiles);
@@ -225,10 +229,11 @@ public class Codec {
      * @param imageBase imatge de referencia
      * @param imageToDecode imatge a decodificar
      * @param data dades per a poder decodificar
+     * @param nTiles nombre de tessel·les emprades a l'hora de codificar aquestes imatges
      * @return imatge descodificada
      */
-    public static BufferedImage decode(BufferedImage imageBase, BufferedImage imageToDecode, Map<Integer,ArrayList<Integer>> data) {
-        ArrayList<ImageTile> list_teselas = Codec.getTiles(imageBase,ArgParser.getInstance().getNTiles());
+    public static BufferedImage decode(BufferedImage imageBase, BufferedImage imageToDecode, Map<Integer,ArrayList<Integer>> data, int nTiles) {
+        ArrayList<ImageTile> list_teselas = Codec.getTiles(imageBase,nTiles);
         for (Entry<Integer, ArrayList<Integer>> entry : data.entrySet()){
             try{
                 imageToDecode = restoreTileColor(imageToDecode, list_teselas.get(entry.getKey()).getImage(), entry.getValue().get(0), entry.getValue().get(1));
