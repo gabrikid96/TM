@@ -107,7 +107,7 @@ public class Codec {
      * @return imatge codificada
      */
      public static BufferedImage encode(BufferedImage baseImage, BufferedImage pImage, Map<Integer,ArrayList<Integer>> data) {
-        long T_ini = System.nanoTime();
+        long initial_time = System.nanoTime();
         int numTiles = ArgParser.getInstance().getNTiles();
         ArrayList<ImageTile> list_tiles = getTiles(baseImage, numTiles);
         int seekRange = ArgParser.getInstance().getSeekRange();
@@ -161,7 +161,7 @@ public class Codec {
             numTile++;
         }
         //System.out.println("Num coincidencias: " + data.size());
-        System.out.printf(" => Time Encode %.2fms\n", (System.nanoTime() - T_ini)* 1e-6);
+        System.out.printf(" => Time Encode %.2fms\n", (System.nanoTime() - initial_time)* 1e-6);
         return imageEncoded;
     }
     
@@ -172,7 +172,7 @@ public class Codec {
      * @return 
      */
     public static ArrayList<ImageTile> getTiles(BufferedImage bi, int nTiles) {
-    ArrayList<ImageTile> list_teselas = new ArrayList();
+    ArrayList<ImageTile> list_tiles = new ArrayList();
     int altura = bi.getHeight();
     int ancho = bi.getWidth();
     double tamy = (double) altura / nTiles;
@@ -185,10 +185,10 @@ public class Codec {
         {
             WritableRaster tesela = (WritableRaster)wras.createChild((int)(x * tamx), (int)(y * tamy),(int)tamx, (int)tamy, 0, 0, null);
             BufferedImage imagen = new BufferedImage(bi.getColorModel(), tesela, bi.getColorModel().isAlphaPremultiplied(), null);
-            list_teselas.add(new ImageTile(imagen, (int)(x * tamx), (int)(y * tamy)));
+            list_tiles.add(new ImageTile(imagen, (int)(x * tamx), (int)(y * tamy)));
         }
     }
-    return list_teselas;
+    return list_tiles;
   }
     
     /**
